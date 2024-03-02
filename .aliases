@@ -1,0 +1,4 @@
+alias ls="eza -F"
+alias ll="eza -lah --group-directories-first"
+alias tree="eza --tree"
+alias cat="bat"
