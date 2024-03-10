@@ -1,4 +1,15 @@
+# Navigation
 alias ls="eza -F"
 alias ll="eza -lah --group-directories-first"
 alias tree="eza --tree"
 alias cat="bat"
+alias ccd="clear && cd"
+
+# Git
+alias gs="git status"
+alias gb="git branch"
+alias gcam="git commit -v -a -m"
+alias gsw="git switch"
+alias gco="git checkout"
+alias gl="git log --all --decorate --oneline --graph"
+alias gls="gl --simplify-by-decoration"
