@@ -1,5 +1,5 @@
 # Initialize aliases
-. $HOME/.aliases
+. $HOME/.config/.aliases
 
 # Initialize starship
 eval "$(starship init zsh)"
