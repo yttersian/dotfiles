@@ -1,8 +1,25 @@
+check_cmd() {
+    command -v "$1" > /dev/null 2>&1
+}
+
+need_cmd() {
+    if ! check_cmd "$1"; then
+        echo "Skipping alias setup for '$1' (command not found)."
+        return 1
+    fi
+}
+
 # Navigation
-alias ls="eza -F"
-alias ll="eza -lah --group-directories-first"
-alias tree="eza --tree"
-alias cat="bat"
+if need_cmd eza; then
+    alias ls="eza -F"
+    alias ll="eza -lah --group-directories-first"
+    alias tree="eza --tree"
+fi
+
+if need_cmd bat; then
+    alias cat="bat"
+fi
+
 alias ccd="clear && cd"
 
 # Git
