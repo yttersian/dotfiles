@@ -1,1 +1,3 @@
-starship init fish | source
+if need_cmd starship
+    starship init fish | source
+end
