@@ -4,7 +4,6 @@ check_cmd() {
 
 need_cmd() {
     if ! check_cmd "$1"; then
-        echo "Skipping alias setup for '$1' (command not found)."
         return 1
     fi
 }
@@ -20,13 +19,11 @@ if need_cmd bat; then
     alias cat="bat"
 fi
 
-alias ccd="clear && cd"
-
 # Git
 alias gs="git status"
-alias gb="git branch"
-alias gcam="git commit -v -a -m"
-alias gsw="git switch"
 alias gco="git checkout"
 alias gl="git log --all --decorate --oneline --graph"
 alias gls="gl --simplify-by-decoration"
+
+# Initialize starship
+eval "$(starship init zsh)"
