@@ -1,18 +1,63 @@
 #!/usr/bin/env bash
 
-PACKAGES=$(cat packages)
-DOTFILES_REPO=$(cat dotfiles_repo)
+set -euo pipefail
 
-bold() {
-    echo -e "\e[1m$*\e[0m"
+PACKAGES="\
+starship \
+helix \
+eza \
+zoxide \
+fd \
+ripgrep \
+bat \
+tokei \
+uv"
+
+APT_PACKAGES="\
+fish \
+stow"
+
+SNAP_PACKAGES="\
+ghostty"
+
+DOTFILES_REPO="https://github.com/yttersian/dotfiles.git"
+
+BOLD="$(tput bold 2>/dev/null || printf '')"
+GREY="$(tput setaf 0 2>/dev/null || printf '')"
+UNDERLINE="$(tput smul 2>/dev/null || printf '')"
+RED="$(tput setaf 1 2>/dev/null || printf '')"
+GREEN="$(tput setaf 2 2>/dev/null || printf '')"
+YELLOW="$(tput setaf 3 2>/dev/null || printf '')"
+ORANGE="$(tput setaf 214 2>/dev/null || printf '')"
+BLUE="$(tput setaf 4 2>/dev/null || printf '')"
+MAGENTA="$(tput setaf 5 2>/dev/null || printf '')"
+CYAN="$(tput setaf 6 2>/dev/null || printf '')"
+NO_COLOR="$(tput sgr0 2>/dev/null || printf '')"
+
+info() {
+  printf '%s\n' "${BOLD}${GREY}>${NO_COLOR} $*"
 }
 
-green_bold() {
-    echo -e "\e[1;32m$*\e[0m"
+warn() {
+  printf '%s\n' "${YELLOW}! $*${NO_COLOR}"
 }
 
-red_bold() {
-    echo -e "\e[1;31m$*\e[0m"
+error() {
+  printf '%s\n' "${RED}x $*${NO_COLOR}" >&2
+}
+
+completed() {
+  printf '%s\n' "${GREEN}✓${NO_COLOR} $*"
+}
+
+confirm() {
+    printf "%s " "${BLUE}?${NO_COLOR} $* ${BOLD}[y/N]${NO_COLOR}"
+    read -r yn </dev/tty
+    [[ "$yn" == "y" || "$yn" == "yes" ]]
+}
+
+has() {
+  command -v "$1" 1>/dev/null 2>&1
 }
 
 get_os() {
@@ -22,82 +67,140 @@ get_os() {
     elif [[ $(uname) == "Darwin" ]]; then
         OS="macOS"
     else
-        red_bold "OS not recognized. Aborting setup"
+        error "OS not recognized. Aborting setup"
         exit 1
     fi
 }
 
-get_package_manager() {
-    local OS=$1
-    if [[ $OS == "arch" || $OS == "endeavouros" ]]; then
-        INSTALL_PKG="sudo pacman -S --needed"
-        PACKAGE_MANAGER="pacman"
-    elif [[ $OS == "macOS" ]]; then
-        if ! command -v brew > /dev/null; then
-            red_bold "homebrew not installed. Aborting setup" >&2
-            exit 1
-        fi
-        INSTALL_PKG="brew install"
-        PACKAGE_MANAGER="brew"
+install_with() {
+    local MANAGER=$1
+    shift
+    local PACKAGES=("$@")
+    local INSTALL_PKG
+    local ICON="🚀"
+    local COLOR="$CYAN"
+
+    case $MANAGER in
+        pacman)
+            INSTALL_PKG="sudo pacman -S --needed"
+            ;;
+        apt)
+            INSTALL_PKG="sudo apt install -qq -y"
+            ;;
+        snap)
+            INSTALL_PKG="sudo snap install --classic"
+            COLOR="$MAGENTA"
+            ICON="📦"
+            ;;
+        brew)
+            INSTALL_PKG="brew install"
+            COLOR=$YELLOW
+            ICON="🍺"
+            ;;
+        *)
+            error "Unsupported package manager: $manager"
+            return 1
+            ;;
+    esac
+
+    printf "\n${BOLD}${COLOR}$ICON Packages to install with $MANAGER:${NO_COLOR}\n"
+
+    for package in $PACKAGES; do
+        info "$package"
+    done
+    if confirm "Confirm?"; then
+        info "Installing ..."
+        $INSTALL_PKG $PACKAGES >/dev/null 2>&1
+        completed "Done"
     else
-        red_bold "Unsupported OS. Aborting setup"
-        exit 1
+        info "Skipped"
+    fi
+}
+
+install_rust() {
+    if ! has cargo; then
+        info "Installing Rust ..."
+        curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+        [ -f "$HOME/.cargo/env" ] && . "$HOME/.cargo/env"
+        printf "${BOLD}${ORANGE}🦀 Oxidized${NO_COLOR}\n"
+    fi
+}
+
+install_homebrew() {
+    if ! has brew; then
+        info "Installing Homebrew ..."
+        /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+        completed "Homebrew installed"
     fi
 }
 
 setup_shell() {
-    shell=$(basename "$SHELL")
-    if [[ $shell == "fish" || $shell == "zsh" ]]; then
-        bold "Shell installed: $shell"
-        return
-    fi
-    echo -e "\nInstall and set default shell?"
-    read -p "Select shell: fish zsh (default=none): " shell
-    if [[ $shell == "fish" || $shell == "zsh" ]]; then
-        if ! command -v $shell > /dev/null; then
-            $INSTALL_PKG $shell
+    if [[ $(basename "$SHELL") != "fish" ]]; then
+        if confirm "Set fish as the default shell?"; then
+            chsh -s "$(command -v fish)"
+        else
+            return
         fi
-        chsh -s $(which $shell)
-    else
-        bold "Skipping shell install"
     fi
-}
-
-install_packages() {
-    echo -e "\nPackages to install: $PACKAGES"
-    read -p "Continue? (default=yes): " confirm
-    if [[ $confirm == "" ]]; then
-        $INSTALL_PKG $PACKAGES
-    else
-        bold "Installation skipped"
-    fi
+    completed "Login shell: fish"
 }
 
 sync_dotfiles() {
-    echo -e "\nInstall stow and sync dotfiles?"
-    read -p "Directory to be created: $HOME/.dotfiles (default=yes): " confirm
-    if [[ $confirm == "" ]]; then
-        $INSTALL_PKG stow
-        cd $HOME
-        git clone $DOTFILES_REPO .dotfiles
-        green_bold "dotfiles synced, go ahead and manually symlink with stow"
-    else
-        bold "dotfiles sync skipped"
+    if [[ "$USER" != "root" && ! -d "$HOME/.dotfiles" ]]; then
+        info "Sync dotfiles?"
+        if confirm "Directory to be created: ${BOLD}${UNDERLINE}$HOME/.dotfiles${NO_COLOR}"; then
+            cd "$HOME"
+            git clone "$DOTFILES_REPO" .dotfiles
+            completed "dotfiles synced, go ahead and manually symlink with stow"
+        else
+            info "dotfiles sync skipped"
+        fi
     fi
+}
+
+setup_arch() {
+    install_with pacman "$PACKAGES $APT_PACKAGES $SNAP_PACKAGES"
+    sudo ln -s $(command -v helix) /usr/local/bin/hx
+}
+
+setup_ubuntu() {
+    info "Updating system ..."
+    sudo apt update -qq -y >/dev/null 2>&1 && sudo apt upgrade -qq -y >/dev/null 2>&1
+    sudo apt install -qq -y build-essential git curl >/dev/null 2>&1
+    install_homebrew
+    install_with apt "$APT_PACKAGES"
+    install_with snap "$SNAP_PACKAGES"
+    install_with brew "$PACKAGES"
+}
+
+setup_mac() {
+    install_homebrew
+    install_with brew "$PACKAGES $APT_PACKAGES"
 }
 
 # Script
 get_os
-bold "OS detected: $OS"
+completed "OS detected: $OS"
 
-get_package_manager "$OS"
-bold "Package manager: $PACKAGE_MANAGER"
+case "$OS" in
+    arch|endeavouros)
+        setup_arch
+        ;;
+    ubuntu)
+        setup_ubuntu
+        ;;
+    macOS)
+        setup_mac
+        ;;
+    *)
+        error "Unsupported OS. Aborting setup"
+        exit 1
+        ;;
+esac
 
+printf '%s\n'
+install_rust
 setup_shell
-install_packages
+sync_dotfiles
 
-if [[ $USER != "root" && ! -d $HOME/.dotfiles ]]; then
-    sync_dotfiles
-fi
-
-green_bold "Setup complete"
+completed "Setup complete"
