@@ -1,3 +1,3 @@
-function need_cmd
+function has_cmd
     command -q $argv[1]
 end
