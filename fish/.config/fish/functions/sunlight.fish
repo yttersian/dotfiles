@@ -1,3 +1,3 @@
 function sunlight
-    uv run --quiet ~/dev/sunlight-tool/sunlight.py
+    uv run --quiet ~/dev/tools/sunlight-tool/sunlight.py
 end
