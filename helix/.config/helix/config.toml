@@ -1,0 +1,9 @@
+theme = "monokai_pro_octagon"
+
+[editor]
+bufferline = "always"
+end-of-line-diagnostics = "error"
+
+[editor.inline-diagnostics]
+cursor-line = "hint"
+
