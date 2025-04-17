@@ -1,4 +1,4 @@
-## My dotfiles
+# My dotfiles
 
 I use [GNU Stow](https://www.gnu.org/software/stow/) to manage my dotfiles
 
@@ -16,3 +16,11 @@ stow [package name]
 ```
 
 Et voilà!
+
+## Setup
+
+Run this command to bootstrap a fresh system
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/yttersian/dotfiles/main/setup.sh | bash
+```
