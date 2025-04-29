@@ -11,11 +11,11 @@
   "ui_font_size": 18,
   "buffer_font_family": "Cascadia Mono",
   "ui_font_family": "Cascadia Code",
-  "buffer_font_size": 18,
+  "buffer_font_size": 20,
   "theme": {
     "mode": "system",
     "light": "One Light",
-    "dark": "Zedokai (Filter Octagon)"
+    "dark": "Zedokai"
   },
 
   "auto_install_extensions": { "zedokai": true }
