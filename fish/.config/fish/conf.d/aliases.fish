@@ -6,16 +6,16 @@ if has_cmd eza
 end
 
 if has_cmd bat
-    alias cat "bat"
+    alias cat bat
 end
 
 if has_cmd ripgrep
-    alias rg "ripgrep"
+    alias rg ripgrep
 end
 
 if has_cmd git
     abbr -a gs git status
     abbr -a gco git checkout
-    abbr -a gl git log --all --decorate --oneline --graph
+    abbr -a gl git log --decorate --oneline --graph --branches
     abbr -a gls git log --all --decorate --oneline --graph --simplify-by-decoration
 end

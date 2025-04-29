@@ -2,23 +2,25 @@
 
 set -euo pipefail
 
-PACKAGES="\
-starship \
-helix \
-eza \
-zoxide \
-fd \
-ripgrep \
-bat \
-tokei \
-uv"
+PACKAGES=(
+    starship
+    helix
+    eza
+    zoxide
+    fd
+    ripgrep
+    bat
+    tokei
+)
 
-APT_PACKAGES="\
-fish \
-stow"
+APT_PACKAGES=(
+    fish
+    stow
+)
 
-SNAP_PACKAGES="\
-ghostty"
+SNAP_PACKAGES=(
+    ghostty
+)
 
 DOTFILES_REPO="https://github.com/yttersian/dotfiles.git"
 
@@ -48,6 +50,10 @@ error() {
 
 completed() {
   printf '%s\n' "${GREEN}✓${NO_COLOR} $*"
+}
+
+blank_line() {
+    printf '%s\n'
 }
 
 confirm() {
@@ -93,7 +99,7 @@ install_with() {
             ICON="📦"
             ;;
         brew)
-            INSTALL_PKG="brew install"
+            INSTALL_PKG="brew install -q"
             COLOR=$YELLOW
             ICON="🍺"
             ;;
@@ -105,15 +111,27 @@ install_with() {
 
     printf "\n${BOLD}${COLOR}$ICON Packages to install with $MANAGER:${NO_COLOR}\n"
 
-    for package in $PACKAGES; do
+    for package in "${PACKAGES[@]}"; do
         info "$package"
     done
     if confirm "Confirm?"; then
         info "Installing ..."
-        $INSTALL_PKG $PACKAGES >/dev/null 2>&1
+        $INSTALL_PKG "${PACKAGES[@]}"
         completed "Done"
     else
         info "Skipped"
+    fi
+}
+
+install_homebrew() {
+    if ! has brew; then
+        info "Installing Homebrew ..."
+        /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+        completed "Homebrew installed"
+    else
+        info "Updating Homebrew packages ..."
+        brew update
+        brew upgrade
     fi
 }
 
@@ -123,15 +141,23 @@ install_rust() {
         curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
         [ -f "$HOME/.cargo/env" ] && . "$HOME/.cargo/env"
         printf "${BOLD}${ORANGE}🦀 Oxidized${NO_COLOR}\n"
+    else
+        printf "${BOLD}${ORANGE}🦀 You're already oxidized${NO_COLOR}\n"
+        rustup check
     fi
+    blank_line
 }
 
-install_homebrew() {
-    if ! has brew; then
-        info "Installing Homebrew ..."
-        /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-        completed "Homebrew installed"
+install_uv() {
+    if ! has uv; then
+        info "Installing uv ..."
+        curl -LsSf https://astral.sh/uv/install.sh | sh
+        completed "uv installed"
+    else
+        info "Updating uv ..."
+        uv self update
     fi
+    blank_line
 }
 
 setup_shell() {
@@ -141,8 +167,8 @@ setup_shell() {
         else
             return
         fi
+        completed "Login shell set to fish, restart your terminal to apply the changes"
     fi
-    completed "Login shell: fish"
 }
 
 sync_dotfiles() {
@@ -160,17 +186,20 @@ sync_dotfiles() {
 
 setup_arch() {
     install_with pacman "$PACKAGES $APT_PACKAGES $SNAP_PACKAGES"
-    sudo ln -s $(command -v helix) /usr/local/bin/hx
+    if ! has hx; then
+        sudo ln -s $(command -v helix) /usr/local/bin/hx
+    fi
 }
 
 setup_ubuntu() {
     info "Updating system ..."
-    sudo apt update -qq -y >/dev/null 2>&1 && sudo apt upgrade -qq -y >/dev/null 2>&1
+    DEBIAN_FRONTEND=noninteractive sudo apt update -qq 2>&1 | grep -v "stable CLI interface" | grep -v "Skipping acquire"
+    DEBIAN_FRONTEND=noninteractive sudo apt upgrade -y -qq 2>&1 | grep -v "stable CLI interface" | grep -v "Skipping acquire"
     sudo apt install -qq -y build-essential git curl >/dev/null 2>&1
     install_homebrew
-    install_with apt "$APT_PACKAGES"
-    install_with snap "$SNAP_PACKAGES"
-    install_with brew "$PACKAGES"
+    install_with apt "${APT_PACKAGES[@]}"
+    install_with snap "${SNAP_PACKAGES[@]}"
+    install_with brew "${PACKAGES[@]}"
 }
 
 setup_mac() {
@@ -197,9 +226,11 @@ case "$OS" in
         exit 1
         ;;
 esac
+blank_line
 
-printf '%s\n'
 install_rust
+install_uv
+
 setup_shell
 sync_dotfiles
 
