@@ -104,7 +104,7 @@ install_with() {
             ICON="🍺"
             ;;
         *)
-            error "Unsupported package manager: $manager"
+            error "Unsupported package manager: $MANAGER"
             return 1
             ;;
     esac
@@ -185,7 +185,7 @@ sync_dotfiles() {
 }
 
 setup_arch() {
-    install_with pacman "$PACKAGES $APT_PACKAGES $SNAP_PACKAGES"
+    install_with pacman "${PACKAGES[@]}" "${APT_PACKAGES[@]}" "${SNAP_PACKAGES[@]}"
     if ! has hx; then
         sudo ln -s $(command -v helix) /usr/local/bin/hx
     fi
@@ -204,7 +204,7 @@ setup_ubuntu() {
 
 setup_mac() {
     install_homebrew
-    install_with brew "$PACKAGES $APT_PACKAGES"
+    install_with brew "${PACKAGES[@]}" "${APT_PACKAGES[@]}"
 }
 
 # Script
