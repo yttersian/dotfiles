@@ -12,14 +12,44 @@
   "ui_font_size": 20,
   "buffer_font_size": 20,
   "agent_font_size": 20,
+  "terminal": { "cursor_shape": "bar", "blinking": "on" },
+  "helix_mode": false,
+
   "theme": {
-    "mode": "light",
+    "mode": "system",
     "light": "Gruvbox Light Soft",
-    "dark": "One Dark"
+    "dark": "Embark"
   },
 
-  "vim_mode": false,
-  "vim": {
-    "default_mode": "helix_normal"
+  "git": {
+    "inline_blame": {
+      "min_column": 100
+    }
+  },
+
+  "agent": {
+    "default_profile": "write",
+    "always_allow_tool_actions": true,
+    "inline_assistant_model": {
+      "provider": "copilot_chat",
+      "model": "gpt-4.1"
+    },
+    "commit_message_model": { "provider": "copilot_chat", "model": "gpt-4.1" },
+    "thread_summary_model": { "provider": "copilot_chat", "model": "gpt-4.1" },
+    "model_parameters": [],
+    "default_model": {
+      "provider": "copilot_chat",
+      "model": "gpt-4.1"
+    }
+  },
+
+  "edit_predictions": {
+    "mode": "subtle",
+    "copilot": {
+      "proxy": null,
+      "proxy_no_verify": null,
+      "enterprise_uri": null
+    },
+    "enabled_in_text_threads": false
   }
 }
